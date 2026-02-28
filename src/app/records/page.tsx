@@ -52,8 +52,17 @@ export default function MyRecords() {
                                     </div>
                                     <p className="text-coffee-brown/60 text-sm">{record.drink}</p>
                                     <div className="flex items-center gap-4 mt-1">
-                                        <span className="text-xs text-coffee-brown/40 flex items-center gap-1">
+                                        <span className="text-xs text-coffee-brown/40 flex items-center gap-1 group/loc">
                                             <MapPin size={12} /> {record.location}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(`https://map.naver.com/v5/search/${encodeURIComponent(record.name)}`, '_blank');
+                                                }}
+                                                className="ml-1 text-[10px] text-blue-500 hover:underline hidden group-hover/loc:inline-block"
+                                            >
+                                                지도보기
+                                            </button>
                                         </span>
                                         <span className="text-xs text-coffee-brown/40">{record.date}</span>
                                     </div>

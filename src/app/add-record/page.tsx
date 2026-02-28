@@ -24,8 +24,22 @@ export default function AddRecord() {
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-coffee-brown flex items-center gap-2">
-                                <Coffee size={16} /> 카페 이름
+                            <label className="text-sm font-bold text-coffee-brown flex items-center justify-between">
+                                <span className="flex items-center gap-2"><Coffee size={16} /> 카페 이름</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const name = (document.querySelector('input[placeholder="어느 카페에 방문하셨나요?"]') as HTMLInputElement)?.value;
+                                        if (name) {
+                                            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(name)}`, '_blank');
+                                        } else {
+                                            alert('카페 이름을 입력해주세요.');
+                                        }
+                                    }}
+                                    className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                >
+                                    <MapPin size={12} /> 네이버 지도에서 검색
+                                </button>
                             </label>
                             <input
                                 type="text"
