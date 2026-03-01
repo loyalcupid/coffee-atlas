@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Coffee, TrendingUp, DollarSign, Star, MoreVertical } from "lucide-react";
+import { Coffee, TrendingUp, DollarSign, Star, MoreVertical, Home } from "lucide-react";
+import Link from "next/link";
 
 export default function Dashboard() {
     const [stats, setStats] = useState({
@@ -17,12 +18,17 @@ export default function Dashboard() {
                 {/* Header */}
                 <div className="flex justify-between items-end">
                     <div>
-                        <h1 className="text-3xl font-bold text-coffee-brown">Dashboard</h1>
-                        <p className="text-coffee-brown/60">환영합니다! 이번 달에도 커피와 함께 즐거운 시간 보내셨나요?</p>
+                        <div className="flex items-center gap-4">
+                            <Link href="/" className="p-2 hover:bg-coffee-brown/5 rounded-full transition-colors text-coffee-brown">
+                                <Home size={24} />
+                            </Link>
+                            <h1 className="text-3xl font-bold text-coffee-brown">Dashboard</h1>
+                        </div>
+                        <p className="text-coffee-brown/60 pt-2">환영합니다! 이번 달에도 커피와 함께 즐거운 시간 보내셨나요?</p>
                     </div>
-                    <button className="bg-coffee-brown text-coffee-cream px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
+                    <Link href="/add-record" className="bg-coffee-brown text-coffee-cream px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">
                         기록 추가하기
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Stats Grid */}

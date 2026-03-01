@@ -11,7 +11,9 @@ export default function Home() {
           <span>당신의 커피 취향을 기록하세요</span>
         </div>
         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-coffee-brown leading-tight">
-          Coffee <span className="text-coffee-accent">Atlas</span>
+          <Link href="/records" className="hover:text-coffee-accent transition-colors">
+            Coffee <span className="text-coffee-accent">Atlas</span>
+          </Link>
         </h1>
         <p className="text-xl md:text-2xl text-coffee-brown/80 max-w-2xl leading-relaxed">
           어떤 카페가 좋았나요? 그날의 향기와 맛을 기록하고, <br className="hidden md:block" />
@@ -19,8 +21,8 @@ export default function Home() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
           <Link
-            href="/signup"
-            className="bg-coffee-brown text-coffee-cream px-10 py-4 rounded-xl text-lg font-bold shadow-xl hover:bg-coffee-brown/90 transition-all hover:-translate-y-1"
+            href="/add-record"
+            className="bg-coffee-brown text-coffee-cream px-10 py-4 rounded-xl text-lg font-bold shadow-xl hover:bg-coffee-brown/90 transition-all hover:-translate-y-1 text-center"
           >
             시작하기
           </Link>
@@ -36,15 +38,15 @@ export default function Home() {
       {/* Features Section */}
       <section className="bg-white/50 w-full py-20 border-y border-coffee-brown/10">
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-          <div className="space-y-4 flex flex-col items-center">
-            <div className="w-16 h-16 bg-coffee-brown text-coffee-cream rounded-2xl flex items-center justify-center shadow-lg">
+          <Link href="/add-record" className="space-y-4 flex flex-col items-center group cursor-pointer">
+            <div className="w-16 h-16 bg-coffee-brown text-coffee-cream rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <Map size={32} />
             </div>
-            <h3 className="text-2xl font-bold text-coffee-brown">카페 아틀라스</h3>
+            <h3 className="text-2xl font-bold text-coffee-brown group-hover:text-coffee-accent transition-colors">카페 아틀라스</h3>
             <p className="text-coffee-brown/70">
               방문한 모든 카페를 기록하고 나만의 지도를 관리하세요.
             </p>
-          </div>
+          </Link>
           <div className="space-y-4 flex flex-col items-center">
             <div className="w-16 h-16 bg-coffee-accent text-coffee-brown rounded-2xl flex items-center justify-center shadow-lg">
               <TrendingUp size={32} />
