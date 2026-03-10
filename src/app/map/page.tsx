@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Home, Coffee, Star, MapPin } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import dynamic from "next/dynamic";
+import "leaflet/dist/leaflet.css";
 
 // Dynamically import Leaflet components as they require 'window'
 const MapContainer = dynamic(() => import("react-leaflet").then((mod) => mod.MapContainer), { ssr: false });
@@ -43,27 +44,35 @@ export default function MapPage() {
 
         const fetchData = async () => {
             try {
+                // We need to call .order() or another method for the mock client to return data
                 const { data, error } = await supabase
                     .from("records")
-                    .select("*");
+                    .select("*")
+                    .order('date', { ascending: false });
 
                 if (error) throw error;
 
                 const rawRecords = data || [];
+                console.log("Fetched records from Supabase/Mock:", rawRecords.length);
                 setRecords(rawRecords);
                 setGeocoding(true);
 
                 // Geocode addresses
                 const geocodedRecords = await Promise.all(
-                    rawRecords.map(async (record, index) => {
+                    rawRecords.map(async (record: CafeRecord, index: number) => {
                         if (!record.location) return record;
 
-                        // Add a delay to avoid rate limiting (Nominatim limit is 1 req/sec)
-                        await new Promise(resolve => setTimeout(resolve, index * 1100));
+                        // Add a delay to avoid rate limiting
+                        await new Promise(resolve => setTimeout(resolve, index * 1200));
 
                         try {
                             const response = await fetch(
-                                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(record.location)}&limit=1`
+                                `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(record.location)}&limit=1`,
+                                {
+                                    headers: {
+                                        'User-Agent': 'CoffeeAtlas/1.0'
+                                    }
+                                }
                             );
                             const result = await response.json();
                             if (result && result.length > 0) {
@@ -80,7 +89,9 @@ export default function MapPage() {
                     })
                 );
 
-                setRecords(geocodedRecords.filter(r => r.lat && r.lng));
+                const finalRecords = geocodedRecords.filter(r => r.lat && r.lng);
+                console.log("Total geocoded records:", finalRecords.length);
+                setRecords(finalRecords);
             } catch (error) {
                 console.error("Error fetching or geocoding records:", error);
             } finally {
@@ -118,7 +129,7 @@ export default function MapPage() {
             </div>
 
             {/* Map Area */}
-            <div className="flex-1 relative z-0">
+            <div className="flex-1 relative z-0" style={{ height: "calc(100vh - 100px)", width: "100%" }}>
                 {geocoding && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg z-[2000] flex items-center gap-2 border border-coffee-brown/10">
                         <div className="animate-spin w-4 h-4 border-2 border-coffee-brown border-t-transparent rounded-full"></div>
