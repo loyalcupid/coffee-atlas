@@ -27,10 +27,10 @@ export default function Home() {
             카페 방문 기록 남기기
           </Link>
           <Link
-            href="/map"
+            href="/dashboard"
             className="bg-transparent border-2 border-coffee-brown text-coffee-brown px-10 py-4 rounded-xl text-lg font-bold hover:bg-coffee-brown/5 transition-all text-center"
           >
-            기록을 지도로 보기
+            나의 커피 취향 분석
           </Link>
         </div>
       </section>
