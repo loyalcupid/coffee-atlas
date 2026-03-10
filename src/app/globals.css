@@ -1,12 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FCF5E5; /* Cream */
-  --foreground: #3D2B1F; /* Dark Brown */
+  --background: #FCF5E5;
+  /* Cream */
+  --foreground: #3D2B1F;
+  /* Dark Brown */
   --primary-brown: #3D2B1F;
   --cream-accent: #FDF5E6;
   --accent-gold: #D4AF37;
 }
+
+@import "leaflet/dist/leaflet.css";
 
 @theme inline {
   --color-background: var(--background);

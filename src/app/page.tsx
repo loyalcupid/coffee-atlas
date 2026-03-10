@@ -38,7 +38,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="bg-white/50 w-full py-20 border-y border-coffee-brown/10">
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12 text-center">
-          <Link href="/add-record" className="space-y-4 flex flex-col items-center group cursor-pointer">
+          <Link href="/map" className="space-y-4 flex flex-col items-center group cursor-pointer">
             <div className="w-16 h-16 bg-coffee-brown text-coffee-cream rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <Map size={32} />
             </div>
