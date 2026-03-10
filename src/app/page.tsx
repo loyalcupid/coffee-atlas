@@ -24,13 +24,13 @@ export default function Home() {
             href="/add-record"
             className="bg-coffee-brown text-coffee-cream px-10 py-4 rounded-xl text-lg font-bold shadow-xl hover:bg-coffee-brown/90 transition-all hover:-translate-y-1 text-center"
           >
-            시작하기
+            카페 방문 기록 남기기
           </Link>
           <Link
             href="/dashboard"
-            className="bg-transparent border-2 border-coffee-brown text-coffee-brown px-10 py-4 rounded-xl text-lg font-bold hover:bg-coffee-brown/5 transition-all"
+            className="bg-transparent border-2 border-coffee-brown text-coffee-brown px-10 py-4 rounded-xl text-lg font-bold hover:bg-coffee-brown/5 transition-all text-center"
           >
-            이미 계정이 있나요?
+            나의 커피 취향 분석
           </Link>
         </div>
       </section>
@@ -42,7 +42,7 @@ export default function Home() {
             <div className="w-16 h-16 bg-coffee-brown text-coffee-cream rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <Map size={32} />
             </div>
-            <h3 className="text-2xl font-bold text-coffee-brown group-hover:text-coffee-accent transition-colors">카페 아틀라스</h3>
+            <h3 className="text-2xl font-bold text-coffee-brown group-hover:text-coffee-accent transition-colors">나의 카페 지도</h3>
             <p className="text-coffee-brown/70">
               방문한 모든 카페를 기록하고 나만의 지도를 관리하세요.
             </p>
@@ -51,7 +51,7 @@ export default function Home() {
             <div className="w-16 h-16 bg-coffee-accent text-coffee-brown rounded-2xl flex items-center justify-center shadow-lg">
               <TrendingUp size={32} />
             </div>
-            <h3 className="text-2xl font-bold text-coffee-brown">맛 프로파일 분석</h3>
+            <h3 className="text-2xl font-bold text-coffee-brown">커피 맛 추천 카페</h3>
             <p className="text-coffee-brown/70">
               산미, 바디감, 단맛 등 데이터를 바탕으로 취향을 분석해드립니다.
             </p>
@@ -60,7 +60,7 @@ export default function Home() {
             <div className="w-16 h-16 bg-coffee-brown/20 text-coffee-brown rounded-2xl flex items-center justify-center shadow-lg">
               <User size={32} />
             </div>
-            <h3 className="text-2xl font-bold text-coffee-brown">개인화 대시보드</h3>
+            <h3 className="text-2xl font-bold text-coffee-brown">나의 커피 사전</h3>
             <p className="text-coffee-brown/70">
               월간 통계와 소비 금액을 한눈에 확인하고 취향을 깊게 알아가세요.
             </p>
