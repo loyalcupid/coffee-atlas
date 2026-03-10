@@ -44,7 +44,7 @@ export default function Home() {
             </div>
             <h3 className="text-2xl font-bold text-coffee-brown group-hover:text-coffee-accent transition-colors">나의 카페 지도</h3>
             <p className="text-coffee-brown/70">
-              방문한 모든 카페를 기록하고 나만의 지도를 관리하세요.
+              기록에 남긴 카페 주소를 기반으로, 내가 다녀온 카페들을 지도에서 한눈에 확인해 보세요.
             </p>
           </Link>
           <div className="space-y-4 flex flex-col items-center">
