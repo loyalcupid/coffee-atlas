@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Coffee, MapPin, Calendar, Star, Edit2, Save, X, Home, ArrowLeft, Trash2 } from "lucide-react";
+import { Coffee, MapPin, Calendar, Star, Edit2, Home, ArrowLeft, Trash2, Plus, Camera } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -10,93 +10,136 @@ export default function RecordDetail() {
     const params = useParams();
     const router = useRouter();
     const [record, setRecord] = useState<any>(null);
-    const [isEditing, setIsEditing] = useState(false);
+    const [visits, setVisits] = useState<any[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false); // For basic cafe info editing
 
-    // Edit form states
+    // Edit form states for basic info
     const [name, setName] = useState("");
     const [location, setLocation] = useState("");
-    const [date, setDate] = useState("");
-    const [drink, setDrink] = useState("");
-    const [memo, setMemo] = useState("");
     const [rating, setRating] = useState(3);
-    const [acidity, setAcidity] = useState(3);
-    const [body, setBody] = useState(3);
-    const [sweetness, setSweetness] = useState(3);
 
     useEffect(() => {
-        const fetchRecord = async () => {
+        const fetchInitialData = async () => {
             try {
-                const { data, error } = await supabase
+                // Fetch record
+                const { data: recData, error: recError } = await supabase
                     .from('records')
                     .select('*')
                     .eq('id', params.id)
                     .single();
 
-                if (error) throw error;
-                setRecord(data);
+                if (recError) throw recError;
+                setRecord(recData);
+                setName(recData.name);
+                setLocation(recData.location);
+                setRating(recData.rating);
 
-                // Initialize form states
-                setName(data.name);
-                setLocation(data.location);
-                setDate(data.date);
-                setDrink(data.drink);
-                setMemo(data.memo);
-                setRating(data.rating);
-                setAcidity(data.acidity);
-                setBody(data.body);
-                setSweetness(data.sweetness);
+                // Fetch visits
+                const { data: visitData, error: visitError } = await supabase
+                    .from('visits')
+                    .select('*')
+                    .eq('record_id', params.id)
+                    .order('date', { ascending: false })
+                    .execute();
+
+                if (visitError) throw visitError;
+                setVisits(visitData || []);
+
+                if (visitData && visitData.length > 0) {
+                    setSelectedVisitId(visitData[0].id);
+                }
             } catch (error) {
-                console.error('Error fetching record:', error);
-                alert('기록을 찾을 수 없습니다.');
-                router.push('/records');
+                console.error('Error fetching record data:', error);
+                alert('데이터를 불러오는 중 오류가 발생했습니다.');
             } finally {
                 setLoading(false);
             }
         };
 
         if (params.id) {
-            fetchRecord();
+            fetchInitialData();
         }
     }, [params.id]);
 
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const updateData = {
-                name,
-                location,
-                date,
-                drink,
-                memo,
-                rating,
-                acidity,
-                body,
-                sweetness
-            };
-
-            const { error } = await supabase
-                .from('records')
-                .update(updateData)
-                .eq('id', params.id)
+    useEffect(() => {
+        const fetchOrders = async () => {
+            if (!selectedVisitId) {
+                setOrders([]);
+                return;
+            }
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('visit_id', selectedVisitId)
                 .execute();
 
-            if (error) throw error;
+            if (!error) setOrders(data || []);
+        };
 
-            setRecord({ ...record, ...updateData });
+        fetchOrders();
+    }, [selectedVisitId]);
+
+    const handleAddVisit = async () => {
+        const date = prompt("방문 날짜를 입력하세요 (YYYY-MM-DD)", new Date().toISOString().split('T')[0]);
+        if (!date) return;
+
+        const { data, error } = await supabase
+            .from('visits')
+            .insert([{ record_id: params.id, date }])
+            .execute();
+
+        if (!error && data) {
+            setVisits([data[0], ...visits]);
+            setSelectedVisitId(data[0].id);
+        }
+    };
+
+    const handleAddOrder = async () => {
+        if (!selectedVisitId) {
+            alert("먼저 방문 날짜를 선택하거나 추가해주세요.");
+            return;
+        }
+        const drink_name = prompt("주문한 커피 이름을 입력하세요");
+        if (!drink_name) return;
+
+        const { data, error } = await supabase
+            .from('orders')
+            .insert([{ visit_id: selectedVisitId, drink_name, rating: 3, acidity: 3, body: 3, sweetness: 3 }])
+            .execute();
+
+        if (!error && data) {
+            setOrders([...orders, data[0]]);
+        }
+    };
+
+    const handleUpdateBasicInfo = async () => {
+        const { error } = await supabase
+            .from('records')
+            .update({ name, location, rating })
+            .eq('id', params.id)
+            .execute();
+
+        if (!error) {
+            setRecord({ ...record, name, location, rating });
             setIsEditing(false);
-        } catch (error) {
-            console.error('Error updating record:', error);
-            alert('수정 중 오류가 발생했습니다.');
-        } finally {
-            setSaving(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("정말로 이 기록을 삭제하시겠습니까?")) return;
+        const { error } = await supabase.from('records').delete().eq('id', params.id).execute();
+        if (!error) {
+            alert('기록이 삭제되었습니다.');
+            router.push('/records');
         }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-coffee-cream/30 p-6 md:p-12 flex items-center justify-center">
+            <div className="min-h-screen bg-coffee-cream/30 p-6 flex items-center justify-center">
                 <div className="animate-spin w-12 h-12 border-4 border-coffee-brown border-t-transparent rounded-full"></div>
             </div>
         );
@@ -105,202 +148,183 @@ export default function RecordDetail() {
     if (!record) return null;
 
     return (
-        <div className="min-h-screen bg-coffee-cream/30 p-6 md:p-12">
-            <div className="max-w-2xl mx-auto space-y-8">
-                {/* Header */}
-                <div className="flex items-center justify-between">
+        <div className="min-h-screen bg-coffee-cream/30 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto space-y-6">
+                {/* Header Navigation */}
+                <div className="flex items-center justify-between pb-2">
                     <div className="flex items-center gap-4">
                         <Link href="/records" className="p-2 hover:bg-coffee-brown/5 rounded-full transition-colors text-coffee-brown">
                             <ArrowLeft size={24} />
                         </Link>
-                        <h1 className="text-3xl font-bold text-coffee-brown">
-                            {isEditing ? "기록 수정" : "상세 기록"}
-                        </h1>
+                        <h1 className="text-2xl font-bold text-coffee-brown">상세 기록</h1>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Link href="/" className="p-2 hover:bg-coffee-brown/5 rounded-full transition-colors text-coffee-brown">
-                            <Home size={24} />
-                        </Link>
-                    </div>
+                    <Link href="/" className="p-2 hover:bg-coffee-brown/5 rounded-full transition-colors text-coffee-brown">
+                        <Home size={24} />
+                    </Link>
                 </div>
 
-                <div className="coffee-card p-8 bg-white/80 backdrop-blur-sm space-y-8">
-                    {/* Basic Info */}
-                    <div className="space-y-6">
-                        {isEditing ? (
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-coffee-brown/50 uppercase tracking-wider">카페 이름</label>
+                <div className="coffee-card bg-white/90 backdrop-blur-sm p-6 space-y-8 shadow-2xl relative overflow-hidden">
+                    {/* Top Info Section */}
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                {isEditing ? (
                                     <input
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full text-2xl font-bold text-coffee-brown bg-transparent border-b-2 border-coffee-brown/10 focus:border-coffee-brown outline-none pb-1 transition-colors"
+                                        className="text-4xl font-black text-coffee-brown bg-transparent border-b-2 border-coffee-brown/20 outline-none w-full"
                                     />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-coffee-brown/50 flex items-center gap-1"><MapPin size={12} /> 위치</label>
+                                ) : (
+                                    <h2 className="text-4xl font-black text-coffee-brown tracking-tighter">{record.name}</h2>
+                                )}
+                                <div className="flex items-center gap-1 text-coffee-brown/50 text-sm">
+                                    <MapPin size={14} />
+                                    {isEditing ? (
                                         <input
                                             value={location}
                                             onChange={(e) => setLocation(e.target.value)}
-                                            className="w-full text-sm text-coffee-brown bg-transparent border-b border-coffee-brown/10 focus:border-coffee-brown outline-none pb-1 transition-colors"
+                                            className="bg-transparent border-b border-coffee-brown/20 outline-none"
                                         />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-coffee-brown/50 flex items-center gap-1"><Calendar size={12} /> 날짜</label>
-                                        <input
-                                            type="date"
-                                            value={date}
-                                            onChange={(e) => setDate(e.target.value)}
-                                            className="w-full text-sm text-coffee-brown bg-transparent border-b border-coffee-brown/10 focus:border-coffee-brown outline-none pb-1 transition-colors"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-coffee-brown/50 flex items-center gap-1"><Coffee size={12} /> 드신 음료</label>
-                                    <input
-                                        value={drink}
-                                        onChange={(e) => setDrink(e.target.value)}
-                                        className="w-full text-lg text-coffee-brown bg-transparent border-b border-coffee-brown/10 focus:border-coffee-brown outline-none pb-1 transition-colors"
-                                    />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-4xl font-black text-coffee-brown tracking-tight">{record.name}</h2>
-                                    <div className="flex items-center text-yellow-600 font-bold bg-yellow-50 px-3 py-1 rounded-full text-lg">
-                                        <Star size={20} fill="currentColor" className="mr-1" /> {record.rating}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 text-coffee-brown/60">
-                                    <span className="flex items-center gap-1"><MapPin size={16} /> {record.location}</span>
-                                    <span className="flex items-center gap-1"><Calendar size={16} /> {record.date}</span>
-                                </div>
-                                <div className="pt-4">
-                                    <span className="bg-coffee-brown/5 text-coffee-brown px-4 py-2 rounded-xl font-bold flex items-center gap-2 w-fit">
-                                        <Coffee size={20} /> {record.drink}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="h-px bg-coffee-brown/10" />
-
-                    {/* Taste Analysis */}
-                    <div className="space-y-6">
-                        <h3 className="text-sm font-bold text-coffee-brown/50 uppercase tracking-widest">Taste Profile</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            {[
-                                { label: "Acidity", value: acidity, setter: setAcidity },
-                                { label: "Body", value: body, setter: setBody },
-                                { label: "Sweetness", value: sweetness, setter: setSweetness },
-                            ].map((item) => (
-                                <div key={item.label} className="space-y-4">
-                                    <div className="flex justify-between items-end">
-                                        <span className="text-coffee-brown font-bold">{item.label}</span>
-                                        <span className="text-coffee-brown/40 text-xs font-mono">{item.value}/5</span>
-                                    </div>
-                                    <div className="relative h-2 bg-coffee-brown/5 rounded-full overflow-hidden">
-                                        <div
-                                            className="absolute top-0 left-0 h-full bg-coffee-brown transition-all duration-500 ease-out rounded-full"
-                                            style={{ width: `${(item.value / 5) * 100}%` }}
-                                        />
-                                    </div>
-                                    {isEditing && (
-                                        <div className="flex justify-between gap-1">
-                                            {[1, 2, 3, 4, 5].map((num) => (
-                                                <button
-                                                    key={num}
-                                                    onClick={() => item.setter(num)}
-                                                    className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${item.value === num
-                                                            ? 'bg-coffee-brown text-coffee-cream shadow-md scale-110'
-                                                            : 'bg-coffee-brown/5 text-coffee-brown hover:bg-coffee-brown/10'
-                                                        }`}
-                                                >
-                                                    {num}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    ) : (
+                                        <span>{record.location}</span>
                                     )}
                                 </div>
-                            ))}
-                        </div>
-                        {isEditing && (
-                            <div className="pt-4 space-y-4">
-                                <label className="text-sm font-bold text-coffee-brown">Rating</label>
-                                <div className="flex gap-2">
-                                    {[1, 2, 3, 4, 5].map((num) => (
-                                        <button
-                                            key={num}
-                                            onClick={() => setRating(num)}
-                                            className={`flex-1 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-1 ${rating === num
-                                                    ? 'bg-yellow-500 text-white shadow-lg scale-105'
-                                                    : 'bg-coffee-brown/5 text-coffee-brown hover:bg-coffee-brown/10'
-                                                }`}
-                                        >
-                                            <Star size={16} fill={rating >= num ? "currentColor" : "none"} /> {num}
-                                        </button>
-                                    ))}
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="flex items-center text-yellow-600 font-bold bg-yellow-50 px-3 py-1 rounded-full text-lg border border-yellow-100">
+                                    <Star size={20} fill="currentColor" className="mr-1" />
+                                    {isEditing ? (
+                                        <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="bg-transparent outline-none">
+                                            {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+                                        </select>
+                                    ) : (
+                                        record.rating
+                                    )}
+                                </div>
+                                <div className="text-sm text-coffee-brown/60 font-medium">
+                                    방문횟수 : <span className="bg-coffee-brown/5 px-2 py-0.5 rounded border border-coffee-brown/20 text-blue-600 font-bold">{visits.length}</span> 회
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    <div className="h-px bg-coffee-brown/10" />
+                    {/* Visit Dates Horizontal List */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-4 border-2 border-blue-400/50 rounded-2xl p-4 bg-blue-50/30 overflow-hidden relative">
+                            <button
+                                onClick={handleAddVisit}
+                                className="flex-shrink-0 w-[120px] h-[80px] border-2 border-dashed border-coffee-brown/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-white/50 transition-all text-coffee-brown group"
+                            >
+                                <span className="text-sm font-bold">방문날짜</span>
+                                <span className="text-sm font-bold">입력</span>
+                            </button>
 
-                    {/* Memo */}
+                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide flex-1">
+                                {visits.map((visit) => (
+                                    <button
+                                        key={visit.id}
+                                        onClick={() => setSelectedVisitId(visit.id)}
+                                        className={`flex-shrink-0 w-[140px] h-[40px] border rounded-md flex items-center justify-center gap-2 font-medium transition-all ${selectedVisitId === visit.id
+                                                ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
+                                                : 'bg-white text-coffee-brown/60 border-coffee-brown/10 hover:border-blue-400'
+                                            }`}
+                                    >
+                                        <Calendar size={14} />
+                                        <span className="text-sm">{visit.date}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Ordered Coffee Horizontal List */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-4 border-2 border-blue-400/50 rounded-2xl p-4 bg-blue-50/30 overflow-hidden">
+                            <button
+                                onClick={handleAddOrder}
+                                className="flex-shrink-0 w-[120px] h-[80px] border-2 border-dashed border-coffee-brown/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-white/50 transition-all text-coffee-brown group"
+                            >
+                                <span className="text-sm font-bold">주문커피</span>
+                                <span className="text-sm font-bold">입력</span>
+                            </button>
+
+                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide flex-1">
+                                {orders.length > 0 ? orders.map((order) => (
+                                    <Link
+                                        key={order.id}
+                                        href={`/records/${params.id}/orders/${order.id}`}
+                                        className="flex-shrink-0 w-[160px] h-[50px] bg-white border border-coffee-brown/10 rounded-md flex items-center justify-center text-coffee-brown font-bold hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm"
+                                    >
+                                        {order.drink_name}
+                                    </Link>
+                                )) : (
+                                    <div className="flex items-center text-coffee-brown/30 text-xs italic pl-2">
+                                        기록된 커피가 없습니다.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Cafe Mood Grid */}
                     <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-coffee-brown/50 uppercase tracking-widest">Memo</h3>
-                        {isEditing ? (
-                            <textarea
-                                value={memo}
-                                onChange={(e) => setMemo(e.target.value)}
-                                className="w-full h-40 p-4 rounded-2xl bg-coffee-brown/5 border-2 border-transparent focus:border-coffee-brown/10 outline-none text-coffee-brown transition-all resize-none"
-                                placeholder="당신의 커피 경험을 기록하세요..."
-                            />
-                        ) : (
-                            <p className="text-coffee-brown/80 leading-relaxed italic border-l-4 border-coffee-brown/10 pl-6 py-2">
-                                {record.memo || "작성된 메모가 없습니다."}
-                            </p>
-                        )}
+                        <h3 className="text-lg font-bold text-coffee-brown pl-1">카페 분위기</h3>
+                        <div className="grid grid-cols-3 gap-3 h-[180px]">
+                            <div className="bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 gap-2 border-2 border-dashed border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                                <Camera size={24} />
+                                <span className="text-[10px] text-center px-2 line-clamp-2">클릭하여 사진을 업로드하세요</span>
+                            </div>
+                            <div className="bg-gray-100 rounded-lg border border-gray-200"></div>
+                            <div className="bg-gray-100 rounded-lg border border-gray-200"></div>
+                        </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="pt-8 flex gap-4">
+                    {/* Bottom Actions */}
+                    <div className="flex gap-4 pt-4">
                         {isEditing ? (
                             <>
                                 <button
-                                    onClick={handleSave}
-                                    disabled={saving}
-                                    className="flex-1 bg-coffee-brown text-coffee-cream py-4 rounded-2xl font-bold shadow-xl hover:bg-coffee-brown/90 transition-all flex items-center justify-center gap-2"
+                                    onClick={handleUpdateBasicInfo}
+                                    className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
                                 >
-                                    {saving ? "저장 중..." : <><Save size={20} /> 수정 사완료</>}
+                                    기본정보 저장
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        setIsEditing(false);
-                                        // Reset form
-                                        setName(record.name);
-                                        // ... other resets if needed, but the simple ones suffice for now
-                                    }}
-                                    className="px-6 py-4 rounded-2xl font-bold text-coffee-brown/40 hover:text-coffee-brown hover:bg-coffee-brown/5 transition-all"
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-6 py-4 rounded-xl font-bold text-coffee-brown bg-gray-100 hover:bg-gray-200 transition-all"
                                 >
                                     취소
                                 </button>
                             </>
                         ) : (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="flex-1 bg-coffee-brown text-coffee-cream py-4 rounded-2xl font-bold shadow-xl hover:bg-coffee-brown/90 transition-all flex items-center justify-center gap-2"
-                            >
-                                <Edit2 size={20} /> 기록 수정하기
-                            </button>
+                            <>
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="flex-1 bg-[#4d443e] text-white py-5 rounded-md font-bold hover:bg-[#3d3632] transition-all flex items-center justify-center gap-2 text-lg"
+                                >
+                                    <Edit2 size={20} /> 기록 수정하기
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    className="flex-1 bg-[#53585f] text-white py-5 rounded-md font-bold hover:bg-[#43484f] transition-all flex items-center justify-center gap-2 text-lg"
+                                >
+                                    <Trash2 size={20} /> 삭제하기
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
             </div>
+
+            <style jsx global>{`
+                .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                }
+                .scrollbar-hide {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 }

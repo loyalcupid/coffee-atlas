@@ -12,13 +12,53 @@ export default function MyRecords() {
     useEffect(() => {
         const fetchRecords = async () => {
             try {
-                const { data, error } = await supabase
+                // Fetch all records
+                const { data: recordsData, error: recordsError } = await supabase
                     .from('records')
                     .select('*')
-                    .order('date', { ascending: false });
+                    .execute();
 
-                if (error) throw error;
-                setRecords(data || []);
+                if (recordsError) throw recordsError;
+
+                // For each record, find the latest visit and its associated order
+                const recordsWithDetails = await Promise.all((recordsData || []).map(async (record: any) => {
+                    // Fetch visits for this record
+                    const { data: visitData } = await supabase
+                        .from('visits')
+                        .select('*')
+                        .eq('record_id', record.id)
+                        .order('date', { ascending: false })
+                        .execute();
+
+                    const latestVisit = visitData?.[0];
+                    let latestDrink = "";
+
+                    if (latestVisit) {
+                        // Fetch orders for this visit
+                        const { data: orderData } = await supabase
+                            .from('orders')
+                            .select('*')
+                            .eq('visit_id', latestVisit.id)
+                            .execute();
+
+                        latestDrink = orderData?.[0]?.drink_name || "";
+                    }
+
+                    return {
+                        ...record,
+                        date: latestVisit?.date || "",
+                        drink: latestDrink
+                    };
+                }));
+
+                // Sort by date manually (descending)
+                recordsWithDetails.sort((a, b) => {
+                    if (!a.date) return 1;
+                    if (!b.date) return -1;
+                    return b.date.localeCompare(a.date);
+                });
+
+                setRecords(recordsWithDetails);
             } catch (error) {
                 console.error('Error fetching records:', error);
             } finally {
