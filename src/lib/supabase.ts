@@ -119,16 +119,26 @@ export const supabase = isMock ? {
         };
 
         return {
-            insert: async (dataToInsert: any[]) => {
-                if (typeof window === 'undefined') return { error: null };
-                const existing = getStoredData();
-                const newData = dataToInsert.map(item => ({
-                    ...item,
-                    id: item.id || Math.random().toString(36).substr(2, 9)
-                }));
-                localStorage.setItem(table, JSON.stringify([...newData, ...existing]));
-                console.log(`[Supabase Mock] Insert into ${table}:`, newData);
-                return { data: newData, error: null };
+            insert: (dataToInsert: any[]) => {
+                const executeInsert = async () => {
+                    if (typeof window === 'undefined') return { data: null, error: null };
+                    const existing = getStoredData();
+                    const newData = dataToInsert.map(item => ({
+                        ...item,
+                        id: item.id || Math.random().toString(36).substr(2, 9)
+                    }));
+                    localStorage.setItem(table, JSON.stringify([...newData, ...existing]));
+                    console.log(`[Supabase Mock] Insert into ${table}:`, newData);
+                    return { data: newData, error: null };
+                };
+
+                return {
+                    select: () => ({
+                        execute: executeInsert
+                    }),
+                    execute: executeInsert,
+                    then: (resolve: any, reject: any) => executeInsert().then(resolve).catch(reject)
+                };
             },
             select: (query: string = '*') => {
                 const chain = {
