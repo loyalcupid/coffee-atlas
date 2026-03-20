@@ -20,6 +20,11 @@ export default function RecordDetail() {
     const [name, setName] = useState("");
     const [location, setLocation] = useState("");
     const [rating, setRating] = useState(3);
+    const [atmosphereImages, setAtmosphereImages] = useState<string[]>([]);
+
+    // Upload state and ref
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -36,6 +41,7 @@ export default function RecordDetail() {
                 setName(recData.name);
                 setLocation(recData.location);
                 setRating(recData.rating);
+                setAtmosphereImages(recData.atmosphere_images || []);
 
                 // Fetch visits
                 const { data: visitData, error: visitError } = await supabase
@@ -89,6 +95,7 @@ export default function RecordDetail() {
         const { data, error } = await supabase
             .from('visits')
             .insert([{ record_id: params.id, date }])
+            .select()
             .execute();
 
         if (!error && data) {
@@ -108,10 +115,57 @@ export default function RecordDetail() {
         const { data, error } = await supabase
             .from('orders')
             .insert([{ visit_id: selectedVisitId, drink_name, rating: 3, acidity: 3, body: 3, sweetness: 3 }])
+            .select()
             .execute();
 
         if (!error && data) {
             setOrders([...orders, data[0]]);
+        }
+    };
+
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (atmosphereImages.length >= 10) {
+            alert('사진은 최대 10장까지 업로드 가능합니다.');
+            return;
+        }
+
+        setUploadingImage(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${params.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('cafe_images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('cafe_images')
+                .getPublicUrl(filePath);
+
+            const newImages = [...atmosphereImages, publicUrl];
+
+            const { error: updateError } = await supabase
+                .from('records')
+                .update({ atmosphere_images: newImages })
+                .eq('id', params.id);
+
+            if (updateError) throw updateError;
+
+            setAtmosphereImages(newImages);
+        } catch (error) {
+            console.error("Error uploading image: ", error);
+            alert("이미지 업로드에 실패했습니다. 데이터베이스 설정을 확인증입니다.");
+        } finally {
+            setUploadingImage(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         }
     };
 
@@ -225,8 +279,8 @@ export default function RecordDetail() {
                                         key={visit.id}
                                         onClick={() => setSelectedVisitId(visit.id)}
                                         className={`flex-shrink-0 w-[140px] h-[40px] border rounded-md flex items-center justify-center gap-2 font-medium transition-all ${selectedVisitId === visit.id
-                                                ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
-                                                : 'bg-white text-coffee-brown/60 border-coffee-brown/10 hover:border-blue-400'
+                                            ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
+                                            : 'bg-white text-coffee-brown/60 border-coffee-brown/10 hover:border-blue-400'
                                             }`}
                                     >
                                         <Calendar size={14} />
@@ -269,13 +323,32 @@ export default function RecordDetail() {
                     {/* Cafe Mood Grid */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-bold text-coffee-brown pl-1">카페 분위기</h3>
-                        <div className="grid grid-cols-3 gap-3 h-[180px]">
-                            <div className="bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 gap-2 border-2 border-dashed border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
-                                <Camera size={24} />
-                                <span className="text-[10px] text-center px-2 line-clamp-2">클릭하여 사진을 업로드하세요</span>
-                            </div>
-                            <div className="bg-gray-100 rounded-lg border border-gray-200"></div>
-                            <div className="bg-gray-100 rounded-lg border border-gray-200"></div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            {atmosphereImages.map((imgUrl, index) => (
+                                <div key={index} className="aspect-square rounded-lg border border-gray-200 overflow-hidden relative shadow-sm">
+                                    <img src={imgUrl} alt={`Atmosphere ${index}`} className="w-full h-full object-cover" />
+                                </div>
+                            ))}
+
+                            {atmosphereImages.length < 10 && (
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="aspect-square bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-400 gap-2 border-2 border-dashed border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                                >
+                                    <Camera size={24} />
+                                    <span className="text-[10px] text-center px-1 leading-tight line-clamp-2">
+                                        {uploadingImage ? '업로드 중...' : '클릭하여 사진을 업로드하세요'}
+                                    </span>
+                                </div>
+                            )}
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                ref={fileInputRef}
+                                onChange={handleImageUpload}
+                                className="hidden"
+                            />
                         </div>
                     </div>
 

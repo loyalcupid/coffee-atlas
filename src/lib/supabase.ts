@@ -211,5 +211,25 @@ export const supabase = isMock ? {
                 })
             })
         };
+    },
+    storage: {
+        from: (bucket: string) => ({
+            upload: async (path: string, file: File) => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const storageKey = `storage_${bucket}_${path}`;
+                        localStorage.setItem(storageKey, reader.result as string);
+                        resolve({ data: { path }, error: null });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            },
+            getPublicUrl: (path: string) => {
+                const storageKey = `storage_${bucket}_${path}`;
+                const dataUrl = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null;
+                return { data: { publicUrl: dataUrl || '' } };
+            }
+        })
     }
 } as any : createClient(supabaseUrl, supabaseAnonKey);
