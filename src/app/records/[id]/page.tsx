@@ -318,16 +318,16 @@ export default function RecordDetail() {
 
                     {/* Ordered Coffee Horizontal List */}
                     <div className="space-y-3">
-                        <div className="flex items-center gap-4 border-2 border-blue-400/50 rounded-2xl p-4 bg-blue-50/30 overflow-hidden">
+                        <div className="flex gap-4 border-2 border-blue-400/50 rounded-2xl p-4 bg-blue-50/30 overflow-hidden relative min-h-[116px]">
                             <button
                                 onClick={handleAddOrder}
-                                className="flex-shrink-0 w-[120px] h-[80px] border-2 border-dashed border-coffee-brown/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-white/50 transition-all text-coffee-brown group"
+                                className="flex-shrink-0 w-[120px] border-2 border-dashed border-coffee-brown/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-white/50 transition-all text-coffee-brown group"
                             >
                                 <span className="text-sm font-bold">주문커피</span>
                                 <span className="text-sm font-bold">입력</span>
                             </button>
 
-                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide flex-1">
+                            <div className="flex flex-wrap gap-3 flex-1 content-start pt-1 pb-1">
                                 {orders.length > 0 ? orders.map((order) => (
                                     <Link
                                         key={order.id}
