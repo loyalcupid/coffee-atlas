@@ -104,6 +104,20 @@ export default function RecordDetail() {
         }
     };
 
+    const handleDeleteVisit = async (visitId: string) => {
+        if (!confirm("이 방문 기록을 삭제하시겠습니까? 관련된 주문 커피 내역도 모두 삭제됩니다.")) return;
+        const { error } = await supabase.from('visits').delete().eq('id', visitId).execute();
+        if (!error) {
+            const updatedVisits = visits.filter(v => v.id !== visitId);
+            setVisits(updatedVisits);
+            if (selectedVisitId === visitId) {
+                setSelectedVisitId(updatedVisits.length > 0 ? updatedVisits[0].id : null);
+            }
+        } else {
+            alert('방문 기록 삭제에 실패했습니다.');
+        }
+    };
+
     const handleAddOrder = async () => {
         if (!selectedVisitId) {
             alert("먼저 방문 날짜를 선택하거나 추가해주세요.");
@@ -264,28 +278,39 @@ export default function RecordDetail() {
 
                     {/* Visit Dates Horizontal List */}
                     <div className="space-y-3">
-                        <div className="flex items-center gap-4 border-2 border-blue-400/50 rounded-2xl p-4 bg-blue-50/30 overflow-hidden relative">
+                        <div className="flex gap-4 border-2 border-blue-400/50 rounded-2xl p-4 bg-blue-50/30 overflow-hidden relative min-h-[116px]">
                             <button
                                 onClick={handleAddVisit}
-                                className="flex-shrink-0 w-[120px] h-[80px] border-2 border-dashed border-coffee-brown/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-white/50 transition-all text-coffee-brown group"
+                                className="flex-shrink-0 w-[120px] border-2 border-dashed border-coffee-brown/30 rounded-lg flex flex-col items-center justify-center gap-1 hover:bg-white/50 transition-all text-coffee-brown group"
                             >
                                 <span className="text-sm font-bold">방문날짜</span>
                                 <span className="text-sm font-bold">입력</span>
                             </button>
 
-                            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide flex-1">
+                            <div className="flex flex-wrap gap-3 flex-1 content-start pt-1 pb-1">
                                 {visits.map((visit) => (
-                                    <button
-                                        key={visit.id}
-                                        onClick={() => setSelectedVisitId(visit.id)}
-                                        className={`flex-shrink-0 w-[140px] h-[40px] border rounded-md flex items-center justify-center gap-2 font-medium transition-all ${selectedVisitId === visit.id
-                                            ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
-                                            : 'bg-white text-coffee-brown/60 border-coffee-brown/10 hover:border-blue-400'
-                                            }`}
-                                    >
-                                        <Calendar size={14} />
-                                        <span className="text-sm">{visit.date}</span>
-                                    </button>
+                                    <div key={visit.id} className="relative flex-shrink-0 inline-flex group">
+                                        <button
+                                            onClick={() => setSelectedVisitId(visit.id)}
+                                            className={`w-[140px] h-[40px] border rounded-md flex items-center justify-center gap-2 font-medium transition-all ${selectedVisitId === visit.id
+                                                ? 'bg-blue-600 text-white border-blue-700 shadow-md scale-[1.02]'
+                                                : 'bg-white text-coffee-brown/60 border-coffee-brown/10 hover:border-blue-400'
+                                                }`}
+                                        >
+                                            <Calendar size={14} />
+                                            <span className="text-sm">{visit.date}</span>
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteVisit(visit.id);
+                                            }}
+                                            title="삭제"
+                                            className="absolute -top-2 -right-2 bg-red-100/90 text-red-500 rounded-full w-5 h-5 flex items-center justify-center text-[10px] sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 hover:bg-red-500 hover:text-white shadow-sm border border-red-200"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
